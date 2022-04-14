@@ -310,35 +310,14 @@ vector<dendroLine> chain_linkage_matrix(SymMatrix<T>* M){
   std::size_t chainNum = info.chainNum;
   int round = 0;
   auto flags = parlay::sequence<std::size_t>(n);
-#ifdef VERBOSE
-  ofstream file_obj;
-  file_obj.open("/Users/sy/Desktop/MIT/clusterer/ParClusterers/clusterers/hac_euclidean_clusterer/debug/1k_true_comp.txt"); 
-#endif
+
   while(finder.C > 1){
     round ++;
-#ifdef VERBOSE
-    std::cout << endl;
-    std::cout << "Round " << round << endl;
-    std::cout << "Comp Num " <<  finder.C << endl;
-    std::cout << "Chain # " <<  info.chainNum << endl;
-#endif
     if(round >= (int)n){
         std::cerr << "too many rounds" << std::endl;
         exit(1);
     }
     chain_find_nn(chainNum, &finder, &info);
-#ifdef VERBOSE
-   for(std::size_t i = 0; i < finder.C; ++i){
-     file_obj << round << " " << finder.activeClusters[i] << endl;
-   }
-   file_obj << round << "========" << endl;
-    for(std::size_t i = 0; i < chainNum; ++i){
-      std::size_t cid = info.terminal_nodes[i];
-      file_obj << round << " " << cid << " " << finder.edges[cid].second << endl; // << " " << finder.edges[cid].getW() 
-    }
-
-   file_obj << round << "========" << endl;
-#endif
     link_terminal_nodes<MatrixNNFinder<T, distT>>(&finder, &info, round, flags);
     // get ready for next round
     finder.updateActiveClusters(round);
