@@ -107,34 +107,17 @@ inline void link_terminal_nodes(UnionFind::ParUF<int> *uf, TF *finder, TreeChain
 
 }
 
-// TODO: proceed in stages to save work
 template<int dim, class TF>
 vector<dendroLine> chain_linkage(TF *finder){
-  // cout << "hash table size " << finder->hashTableSize << endl;
   UnionFind::ParUF<int> *uf = finder->uf;
   int n = finder->n;
   int chainNum = n;
   TreeChainInfo info = TreeChainInfo(n, finder->eps);
   parlay::sequence<int> flags = parlay::sequence<int>(chainNum);// used in linkterminalnodes
-#ifdef VERBOSE
- ofstream file_obj;
- file_obj.open("debug/1k_comp.txt"); 
-#endif
 
   int round = 0;
-  // bool print = false;
   while(finder->C > 1 ){
     round ++;
-#ifdef VERBOSE
-    // if(LINKAGE_DOPRINT(round)){//
-    // print = true;
-    std::cout << endl;
-    std::cout << "Round " << round << endl;
-    std::cout << "Comp Num " <<  finder->C << endl;
-    std::cout << "Chain # " <<  info.chainNum << endl;//}else{print = false;}
-  // if(round >= 10)  exit(1);
-#endif
-  // if(round >= 2 && info->chainNum == 0) zero_chain_debug(finder, round, info); 
   if(round >= n){
       std::cerr << "too many rounds" << std::endl;
       exit(1);
@@ -144,19 +127,6 @@ vector<dendroLine> chain_linkage(TF *finder){
   }else{
     chain_find_nn<TF>(chainNum, finder, &info);
   }
-
-#ifdef VERBOSE
-   for(int i = 0; i < finder->C; ++i){
-     file_obj << round << " " << finder->activeClusters[i] << endl;
-   }
-   file_obj << round << "========" << endl;
-    for(int i = 0; i < chainNum; ++i){
-      int cid = info->terminal_nodes[i];
-      file_obj << round << " " << cid << " " << finder->edges[cid].second << endl;//<< " " << finder->edges[cid].getW() 
-    }
-
-   file_obj << round << "========" << endl;
-#endif
     link_terminal_nodes<TF>(uf, finder, &info, round, parlay::make_slice(flags));
     // get ready for next round
     finder->updateActiveClusters(round);
