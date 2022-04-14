@@ -40,45 +40,39 @@ using namespace std;
 using namespace HACMatrix;
 using parlay::internal::timer;
 
-template<int dim>
 void run(commandLine& params){
-
+    using T = double;
     char* filename = params.getArgument(0);
     string output = params.getOptionValue("-o", "");
-    double eps = params.getOptionDoubleValue("-eps", 0);
-    // cout << "eps = " << std::setprecision(25) <<  eps << endl;
     string method = params.getOptionValue("-method", "invalid");
-    int cache_size = params.getOptionIntValue("-cachesize", 32);
-    if(cache_size == 1) cache_size =0;
-    cout << "cache_size = " <<  cache_size << endl;
+    int dim = params.getOptionIntValue("-d",2);
 
-    bool no_cache = cache_size==0;
     timer t;t.start();
-    auto P = pointIO::readPointsFromFile<point<dim>>(filename);
+    auto P = pointIO::readNumbersFromFile(filename);
     t.next("load points");
     vector<dendroLine> dendro;
     if(method ==  "complete"){
-        SymMatrix<double> *W = getDistanceMatrix<point<dim>>(P); 
+        SymMatrix<double> *W = getDistanceMatrix(P, dim); 
         using distT = distComplete<T>;
         dendro = chain_linkage_matrix<T, distT>(W);
     }else if(method ==  "ward"){
-        SymMatrix<double> *W = getDistanceMatrix<point<dim>>(P); 
-        using distT = internal::distWard<T>;
+        SymMatrix<double> *W = getDistanceMatrix(P, dim); 
+        using distT = distWard<T>;
         dendro = chain_linkage_matrix<T, distT>(W);
     }else if(method ==  "avg"){
-         SymMatrix<double> *W = getDistanceMatrix<point<dim>>(P); 
-        using distT = internal::distAverage<T>;
+         SymMatrix<double> *W = getDistanceMatrix(P, dim); 
+        using distT = distAverage<T>;
         dendro = chain_linkage_matrix<T, distT>(W);
     }else if(method ==  "avgsq"){
-         SymMatrix<double> *W = getDistanceMatrix<point<dim>>(P, &distancesq<T>); 
-        using distT = internal::distAverage<T>;
+         SymMatrix<double> *W = getDistanceMatrix(P, dim, &distancesq); 
+        using distT = distAverage<T>;
         dendro = chain_linkage_matrix<T, distT>(W);
     }else{
         cout << "invalid method" << endl;
         exit(1);
     }
     t.next("clustering");
-    double checksum = getCheckSum(dendro);
+    double checksum = parlay::reduce(parlay::delayed_seq<double>(dendro.size(), [&](size_t i){return dendro[i].height;}));
     cout << "Cost: " << std::setprecision(10) << checksum << endl;
 
     int n = dendro.size()+1;
@@ -95,29 +89,9 @@ void run(commandLine& params){
 }
 
 int main(int argc, char *argv[]) {
-    commandLine P(argc,argv,"[-o <outFile>] [-d <dim>] [-method <method>] [-cachesize <cachesize>] <inFile>");
-    int dim = P.getOptionIntValue("-d",2);
+    commandLine P(argc,argv,"[-o <outFile>] [-d <dim>] [-method <method>] <inFile>");
+    
     cout << "num workers: " << parlay::num_workers() << endl;
 
-    if(dim ==2){
-        run<2>(P);
-    }else if(dim == 3){
-         run<3>(P);
-    }else if(dim == 4){
-         run<4>(P);
-    }else if(dim == 5){
-         run<5>(P);
-    }else if(dim == 6){
-         run<6>(P);
-    }else if(dim == 7){
-         run<7>(P);
-    }else if(dim == 8){
-         run<8>(P);
-    }else if(dim == 9){
-         run<9>(P);
-    }else if(dim == 10){
-         run<10>(P);
-    }else{
-        cerr << "dim not supported" << endl;
-    }
+    run(P);
 }

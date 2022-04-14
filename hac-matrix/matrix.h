@@ -97,24 +97,27 @@ struct SymMatrix{
     }
 };
 
-template<class pointT>
-inline double distance(pointT& p, pointT& q){
-  return p.pointDist(q);
+inline double distancesq(parlay::slice<double*, double*> a, parlay::slice<double*, double*> b) {
+    double sum=0;
+    for (std::size_t k=0; k<a.size(); k++) {
+        float tmp=a[k]-b[k];
+        sum+=(tmp*tmp);
+    }
+    return sum;
 }
 
-template<class pointT>
-inline double distancesq(pointT& p, pointT& q){
-  return p.pointDistSq(q);
+inline double distance(parlay::slice<double*, double*> a, parlay::slice<double*, double*> b) {
+    return sqrt(distancesq(a,b));
 }
 
 
-template <class F, class pointT>
-SymMatrix<double>* getDistanceMatrix(parlay::sequence<pointT>& datapoints, F f) {
-    int n = datapoints.size();
-    SymMatrix<T> *matrix = new SymMatrix<T>(n);
+template <class F>
+SymMatrix<double>* getDistanceMatrix(parlay::sequence<double>& datapoints, int dim, F f) {
+    int n = datapoints.size()/dim;
+    SymMatrix<double> *matrix = new SymMatrix<double>(n);
     parlay::parallel_for(0, n, [&](size_t i){
         parlay::parallel_for(i+1, n,[&] (size_t j){
-	        matrix->update(i, j, f(datapoints[i], datapoints[j]));
+	        matrix->update(i, j, f(datapoints.cut(i*dim, (i+1)*dim), datapoints.cut(j*dim, (j+1)*dim)));
         });
     });
     matrix->setDiag(0);
@@ -124,9 +127,8 @@ SymMatrix<double>* getDistanceMatrix(parlay::sequence<pointT>& datapoints, F f) 
 //return a symmetric matrix representation of the euclidean distance
 // between all pairs of datapoints.
 // assume all points have the same dimension and are in dense format
-template <class pointT>
-SymMatrix<double>* getDistanceMatrix(parlay::sequence<pointT>& datapoints) {
-    return getDistanceMatrix<T>(datapoints, &distance<pointT>);
+SymMatrix<double>* getDistanceMatrix(parlay::sequence<double>& datapoints, int dim) {
+    return getDistanceMatrix(datapoints, dim, &distance);
 }
 
 

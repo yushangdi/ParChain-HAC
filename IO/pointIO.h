@@ -115,4 +115,25 @@
       return parsePoints<pointT>(W.cut(0,W.size()));
   }
 
+  template <class Seq>
+  parlay::sequence<double> parseNumbers(Seq W) {
+    using coord = double;
+    size_t n = W.size();
+    auto a = parlay::tabulate(n, [&] (size_t i) -> coord {
+				       return atof(W[i]);});
+    return a;
+  }
+
+  parlay::sequence<double> readNumbersFromFile(char const *fname) {
+    parlay::sequence<char> S = IO::readStringFromFile(fname);
+    parlay::sequence<char*> W = IO::stringToWords(S);
+    if (W.size() == 0)
+      throw std::runtime_error("readPointsFromFile empty file");
+
+    if (isGenericHeader(W[0]))
+      return parseNumbers(W.cut(1,W.size()));
+    else
+      return parseNumbers(W.cut(0,W.size()));
+  }
+
 } // End namespace pointIO
