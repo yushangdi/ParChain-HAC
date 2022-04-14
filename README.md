@@ -12,6 +12,7 @@ git submodule update --init
 
 Compiler:
 * g++ = 7.5.0
+Hardware support for __sync_bool_compare_and_swap_16 needed.
 
 ## Compilation
 
